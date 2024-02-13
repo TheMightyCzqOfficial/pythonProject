@@ -114,7 +114,7 @@ class MethodCon:
                 time.sleep(step_dict["waitSecond"])
 
     def execute_method(self, methodId, executeParam):
-        # executeParam:循环步骤start end 、每个步骤输入的参数，后期看情况升级衔接执行下一个方法或者中间执行某些特定方法
+        # executeParam:循环执行步骤start end 、每个步骤输入的参数，后期看情况升级衔接执行下一个方法或者中间执行某些特定方法
         if not self.init_method(methodId):
             return "相同方法执行中。不允许重复创建"
         index = self.get_methodIndex_by_id(methodId)
