@@ -1,0 +1,4 @@
+{
+    "user": "jsonfile/user.json",
+    "method": "jsonfile/method_config.json"
+}
