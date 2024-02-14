@@ -11,13 +11,12 @@
     },
     {
         "methodName": "\u65b9\u6cd5test",
-        "url": "www.test.com",
         "methodId": "M20240202091212",
         "methodType": "\u8d22\u52a1\u5171\u4eab",
-        "userType": "\u4e2a\u4eba\u8d26\u53f7",
+        "userType": "\u7ba1\u7406\u5458\u8d26\u53f7",
         "stepCount": 6,
         "editable": "\u662f",
-        "createDate": "2024-02-13 21:00:15"
+        "createDate": "2024-02-14 13:02:46"
     },
     {
         "methodName": "czqsb",

@@ -12,8 +12,7 @@ from configController import JsonCon
 
 class WebEntity:
 
-    def __init__(self, url, methodId):
-        self.executing_method = methodId
+    def __init__(self, url):
         self.main_url = url
         self.global_webdriver = None
         self.chrome_options = webdriver.ChromeOptions()
@@ -25,19 +24,19 @@ class WebEntity:
         self.global_webdriver = webdriver.Chrome(options=self.chrome_options)
         self.global_webdriver.get(str(self.main_url))
 
-    def set_message(self, message, status, socketio):
-        self.message_list.append([time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), message, status])
-        log = {'messageList': self.message_list}
-        socketio.emit("messageFormPython", json.dumps(log, ensure_ascii=False))
-
-    def set_log(self, log, status, socketio):
-        self.log_list.append([time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), log, status])
-        log = {'log': self.log_list}
-        socketio.emit("logAndPercentage", json.dumps(log, ensure_ascii=False))
-
-    def set_name_list(self, name, description, status):
-        self.name_list.append([name, description, status])
-
-    def set_percentage(self, percentage, percentage_type, socketio):
-        log = {"percentage": {'percentage': percentage, 'percentageType': percentage_type}}
-        socketio.emit("logAndPercentage", json.dumps(log, ensure_ascii=False))
+    # def set_message(self, message, status, socketio):
+    #     self.message_list.append([time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), message, status])
+    #     log = {'messageList': self.message_list}
+    #     socketio.emit("messageFormPython", json.dumps(log, ensure_ascii=False))
+    #
+    # def set_log(self, log, status, socketio):
+    #     self.log_list.append([time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), log, status])
+    #     log = {'log': self.log_list}
+    #     socketio.emit("logAndPercentage", json.dumps(log, ensure_ascii=False))
+    #
+    # def set_name_list(self, name, description, status):
+    #     self.name_list.append([name, description, status])
+    #
+    # def set_percentage(self, percentage, percentage_type, socketio):
+    #     log = {"percentage": {'percentage': percentage, 'percentageType': percentage_type}}
+    #     socketio.emit("logAndPercentage", json.dumps(log, ensure_ascii=False))

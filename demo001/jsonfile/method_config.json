@@ -34,7 +34,7 @@
                 "action": "click",
                 "inputText": "",
                 "stepName": "\u70b9\u51fb\u767b\u5f55\u6309\u94ae",
-                "waitSecond": 0,
+                "waitSecond": 3,
                 "xpath": "//button[@class='el-button el-button--primary']",
                 "xpathIndex": 0
             }

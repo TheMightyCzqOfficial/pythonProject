@@ -3,5 +3,7 @@
     "method": "jsonfile/method_config.json",
     "method_list": "jsonfile/method_list.json",
     "front_public_path": "C:/Users/13458/Desktop/bot-demo/bot-demo-front/public/static/excelFile/",
-    "360SE_path": "C:/Users/13458/AppData/Roaming/360se6/Application/360se.exe"
+    "360SE_path": "C:/Users/13458/AppData/Roaming/360se6/Application/360se.exe",
+    "cwgxUrl": "https://fssce.powerchina.cn:9081/",
+    "ygekUrl": "http://10.19.18.12:33021/metamodel/necp/mapp/metamodel/component.ef/bcp/login.html"
 }

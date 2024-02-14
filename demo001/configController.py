@@ -53,6 +53,13 @@ class JsonCon:
         path_check()
         self.config = read_config_file("jsonfile/config.json")
 
+    def resetLoginStatus(self):
+        user_dict = self.get_user_config()
+        print("重置账号登录状态...")
+        for key in user_dict.keys():
+            user_dict[key]["isLogin"] = False
+        self.save_by_filename("user", user_dict)
+
     def save_by_filename(self, filename, data):
         update_config_file(self.config[filename], data)
 
@@ -64,9 +71,10 @@ class JsonCon:
         data = read_config_file(self.config["user"])
         return data
 
-    def get_user_by_name(self, name):
+    def change_login_status(self, pk):
         data = read_config_file(self.config["user"])
-        return data[name]
+        data[pk]["isLogin"] = not data[pk]["isLogin"]
+        self.save_by_filename("user", data)
 
     def del_user_by_name(self, pk):
         userdata = read_config_file(self.config["user"])
@@ -74,7 +82,7 @@ class JsonCon:
         self.save_by_filename("user", userdata)
 
     def set_user_by_name(self, pk, data):
-        data = {"username": data["username"], "password": data["password"], "type": data["type"]}
+        data = {"username": data["username"], "password": data["password"], "type": data["type"], "isLogin": False}
         userdata = read_config_file(self.config["user"])
         if not has_key(userdata, pk):
             now = datetime.datetime.now()
@@ -111,10 +119,10 @@ class JsonCon:
             createDate = date_str
             editable = data["editable"]
             stepData = data["stepData"]
-            url = data["url"]
+
             method_list = read_config_file(self.config["method_list"])
             method_list.append(
-                {"methodName": methodName, "methodId": methodId, "url": url, "methodType": methodType,
+                {"methodName": methodName, "methodId": methodId, "methodType": methodType,
                  "userType": userType,
                  "stepCount": stepCount, "createDate": createDate, "editable": editable})
             method_data = read_config_file(self.config["method"])
@@ -149,11 +157,10 @@ class JsonCon:
             stepCount = data["stepCount"]
             editable = data["editable"]
             stepData = data["stepData"]
-            url = data["url"]
             method_list = read_config_file(self.config["method_list"])
             for index, item in enumerate(method_list):
                 if methodId == item["methodId"]:
-                    method_list[index] = {"methodName": methodName, "url": url, "methodId": methodId,
+                    method_list[index] = {"methodName": methodName, "methodId": methodId,
                                           "methodType": methodType,
                                           "userType": userType,
                                           "stepCount": stepCount, "editable": editable, "createDate": createDate}
