@@ -110,7 +110,7 @@ def downloadMethodExcel():
 @app.route('/openAndLogin', methods=['POST'])
 def openAndLogin():
     data = request.get_json()
-    loginFlag = mc.init_method(data["pk"])
+    loginFlag = mc.init_driver(data["pk"])
     if loginFlag:
         return set_res(SUCCESS_STATUS, "登录成功")
     else:
