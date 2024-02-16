@@ -55,9 +55,19 @@ class MethodCon:
         # 运行的step的参数模板文件使用dict stepName:[] 数组长度代表循环的次数
         # step_param={"step2":[1,2,3,4],"step3":[1,2,3,4],"step4":"xxx"} list代表输入的 字符串代表定位的文本
         self.running_driver_dict[pk]["methodList"].append({
-            "methodId": methodId, "status": "0", "isLoop": param["isLoop"], "loopStart": param["loopStart"],
-            "loopEnd": param["loopEnd"], "stepParam": param["stepParam"], "currentStep": "0","currentParam":""
+            "methodId": methodId, "status": "0", "isLoop": param["isLoop"], "loopStartNum": param["loopStartNum"],
+            "loopEndNum": param["loopEndNum"], "loopTimes": param["loopTimes"], "stepParam": param["stepParam"],
+            "currentStep": "0", "currentParam": ""
         })
+
+    def setMethodStatus(self, pk, index, currentStep, currentStepName, currentParam=""):
+        self.running_driver_dict[pk]["methodList"][index]["currentStep"] = currentStep
+        self.running_driver_dict[pk]["methodList"][index]["currentParam"] = currentParam
+        self.running_driver_dict[pk]["methodList"][index]["currentStepName"] = currentStepName
+        # {
+        #     "methodId": methodId, "status": "0", "isLoop": param["isLoop"], "loopStart": param["loopStart"],
+        #     "loopEnd": param["loopEnd"], "stepParam": param["stepParam"], "currentStep": "0","currentParam":""
+        # }
 
     def is_pause(self, pk):
         if self.running_driver_dict[pk]["isPause"]:
@@ -83,6 +93,9 @@ class MethodCon:
             resList.append(res_dict)
         return resList
 
+    def queryMethodList(self, pk):
+        return self.running_driver_dict[pk]["methodList"]
+
     def enter_frame(self, pk, iframe):  # 传入iframe Xpath
         self.webdriver_dict[pk].switch_to.frame(iframe)
 
@@ -100,7 +113,7 @@ class MethodCon:
         new_window = window_handles[-1]
         self.webdriver_dict[pk].switch_to.window(new_window)
 
-    def return_to_preWindow(self, pk):
+    def switch_to_preWindow(self, pk):
         window_handles = self.webdriver_dict[pk].window_handles
         self.webdriver_dict[pk].close()
         self.webdriver_dict[pk].switch_to.window(window_handles[0])
@@ -119,10 +132,32 @@ class MethodCon:
         input_text.click()
         time.sleep(waitSecond)
 
-    def find_and_click_by_text(self, pk, xpath, text, waitSecond):
-        input_text = self.webdriver_dict[pk].find_element(By.XPATH, xpath + "[text()='" + text + "']")
+    def find_and_click_by_text(self, pk, xpath, locateText, waitSecond):
+        input_text = self.webdriver_dict[pk].find_element(By.XPATH, xpath + "[text()='" + locateText + "']")
         input_text.click()
         time.sleep(waitSecond)
+
+    def runAction(self, step_dict, pk, param=""):
+        if step_dict["action"] == "input":
+            self.find_and_input(pk, param, step_dict["xpath"], step_dict["xpathIndex"],
+                                step_dict["waitSecond"])
+        if step_dict["action"] == "click":
+            if len(param) > 0:  # // a[text() = "新闻"]
+                self.find_and_click_by_text(pk, step_dict["xpath"], param,
+                                            step_dict["waitSecond"])
+            elif len(param) == 0:
+                self.find_and_click(pk, step_dict["xpath"], step_dict["xpathIndex"],
+                                    step_dict["waitSecond"])
+        if step_dict["action"] == "enterFrame":
+            self.exit_frame(pk)
+        if step_dict["action"] == "exitFrame":
+            self.enter_frame(pk, step_dict["xpath"])
+        if step_dict["action"] == "refresh":
+            self.refresh(pk)
+        if step_dict["action"] == "switchToNewWindow":
+            self.switch_to_newWindow(pk)
+        if step_dict["action"] == "switchToPreWindow":
+            self.switch_to_preWindow(pk)
 
     def run_logout(self, pk):
         self.webdriver_dict[pk].quit()
@@ -156,31 +191,51 @@ class MethodCon:
         return True
 
     def run_method(self, pk, methodId, param):
-        # param:循环执行步骤loopStart loopEnd 、每个步骤输入的参数inputDataList[{step1:xxx,step2:xxx}]
-        # 后期看情况升级衔接执行下一个方法或者中间执行某些特定方法
-        self.running_driver_dict[pk]["methodList"].append(methodId)
+        # "isLoop": param["isLoop"], "loopStart": param["loopStart"],"loopEnd": param["loopEnd"], "stepParam": param[
+        # "stepParam"], "currentStep": "0", "currentParam": ""
+        # 运行前参数赋值
+        self.init_method(pk, methodId, param)
+        index = len(self.running_driver_dict[pk]["methodList"]) - 1
         method_dict = self.jsonCon.get_method(methodId)
         step_data_dict = method_dict["stepData"]
         stepCount = method_dict["stepCount"]
+        loopStartNum = param["loopStartNum"]
+        loopEndNum = param["loopEndNum"]
+        loopTimes = param["loopTimes"]  # 循环次数 需要与传入excel行数对应
+        stepParam = param["stepParam"]
+        isLoop = param["isLoop"]
+        # 方法主循环
+        # 变更状态，开始运行
+        self.running_driver_dict[pk]["methodList"]["status"] = "1"
         for i in range(1, stepCount + 1):  # 从1开始的range要加一
-            self.is_pause(methodId)
-            step_dict = step_data_dict["step" + str(i)]
-            self.running_method_list[index]["currentStep"] = step_dict["stepName"]
-            print_log(step_dict, method_dict["methodName"], i)
-            if step_dict["action"] == "input":
-                self.find_and_input(pk, step_dict["inputText"], step_dict["xpath"], step_dict["xpathIndex"],
-                                    step_dict["waitSecond"])
-            if step_dict["action"] == "click":
-                if len(step_dict["locateText"]) > 0:  # // a[text() = "新闻"]
-                    self.find_and_click_by_text(pk, step_dict["xpath"], step_dict["xpathIndex"],
-                                                step_dict["waitSecond"])
-                self.find_and_click(pk, step_dict["xpath"], step_dict["xpathIndex"],
-                                    step_dict["waitSecond"])
-            if step_dict["action"] == "enterFrame":
-                self.exit_frame(pk)
-            if step_dict["action"] == "exitFrame":
-                self.enter_frame(pk, step_dict["xpath"])
-        del self.running_method_list[index]
+            stepKey = "step" + str(i)
+            step_dict = step_data_dict[stepKey]
+            # pk, index, currentStep, currentStepName, currentParam=""
+            # print_log(step_dict, method_dict["methodName"], i)
+            if isLoop and i == loopStartNum:  # 步骤循环执行
+                for looptime in range(loopTimes):
+                    for loopStep in range(loopStartNum, loopEndNum + 1):
+                        self.is_pause(pk)
+                        self.setMethodStatus(pk, index, str(i), step_dict["stepName"])
+                        stepKey = "step" + str(loopStep)
+                        if stepKey in stepParam.keys():
+                            currentStepParam = stepParam[stepKey][loopTimes]
+                            self.runAction(step_dict, pk, currentStepParam)
+                        else:
+                            self.runAction(step_dict, pk)
+            elif isLoop and loopStartNum < i <= loopEndNum:  # 循环的步骤已执行完毕，跳过
+                pass
+            else:  # 未在循环体内的步骤（单次执行步骤）
+                # step_param={"step2":[1,2,3,4],"step3":[1,2,3,4],"step4":"xxx"} list代表输入的 字符串代表定位的文本
+                self.is_pause(pk)
+                self.setMethodStatus(pk, index, str(i), step_dict["stepName"])
+                if stepKey in stepParam.keys():
+                    currentStepParam = stepParam[stepKey]
+                    self.runAction(step_dict, pk, currentStepParam)
+                else:
+                    self.runAction(step_dict, pk)
+        # 运行的status代表运行状态 0-等待运行，1-运行中，2-已运行
+        self.running_driver_dict[pk]["methodList"]["status"] = "2"
 
 # if __name__ == '__main__':
 # mc = MethodCon("https://fssce.powerchina.cn:9081/", "loginCWGX")
