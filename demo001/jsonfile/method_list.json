@@ -26,5 +26,14 @@
         "stepCount": 1,
         "editable": "\u662f",
         "createDate": "2024-02-02 10:42:33"
+    },
+    {
+        "methodName": "\u767b\u5f55\u8fdc\u5149\u4e8c\u5f00\u5e73\u53f0",
+        "methodId": "loginYGEK",
+        "methodType": "\u8fdc\u5149\u4e8c\u5f00",
+        "userType": "\u8fdc\u5149\u4e8c\u5f00\u8d26\u53f7",
+        "stepCount": 4,
+        "editable": false,
+        "createDate": "2024-02-20 15:02:42"
     }
 ]

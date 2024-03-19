@@ -1,3 +1,6 @@
+import os
+import datetime
+
 import cv2  # opencv库
 import json
 import random
@@ -17,9 +20,9 @@ def get_canny(img):
     return canny
 
 
-def get_offset():
-    verify_img = cv2.imread('verify_img.png')
-    code_img = cv2.imread('code_img.png')
+def get_offset(verify_img_name, code_img_name):
+    verify_img = cv2.imread(verify_img_name)
+    code_img = cv2.imread(code_img_name)
     get_canny(verify_img)
     get_canny(code_img)
     image = get_canny(verify_img)
@@ -37,18 +40,25 @@ def get_offset():
     return startX
 
 
-def move_verify(global_webdriver):
+def move_verify(global_webdriver, verify_img_name, code_img_name):
     smallImage = global_webdriver.find_element(By.XPATH, '//div[@class="verify-move-block verify-icon '
                                                          'iconfont icon-right"]')
     ActionChains(global_webdriver).click_and_hold(smallImage).perform()
-    ActionChains(global_webdriver).move_by_offset(xoffset=get_offset(), yoffset=0).perform()
+    ActionChains(global_webdriver).move_by_offset(xoffset=get_offset(verify_img_name, code_img_name),
+                                                  yoffset=0).perform()
     ActionChains(global_webdriver).release().perform()
+    os.remove(verify_img_name)
+    os.remove(code_img_name)
 
 
 def login(global_webdriver):
+    now = datetime.datetime.now()
+    date_str = now.strftime("%Y%m%d%H%M%S")
     img_list = global_webdriver.find_elements(By.XPATH, "//img")
     verify_img = img_list[2].get_attribute("src")
-    urllib.request.urlretrieve(verify_img, 'verify_img.png')
+    verify_img_name = date_str + "verify_img.png"
+    code_img_name = date_str + "code_img.png"
+    urllib.request.urlretrieve(verify_img, verify_img_name)
     code_img = img_list[3].get_attribute("src")
-    urllib.request.urlretrieve(code_img, 'code_img.png')
-    move_verify(global_webdriver)
+    urllib.request.urlretrieve(code_img, code_img_name)
+    move_verify(global_webdriver, verify_img_name, code_img_name)

@@ -19,13 +19,14 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 mc = MethodCon()
 JsonCon().resetLoginStatus()
 
+
 @cross_origin()
 @app.route('/upload', methods=['POST'])
 def upload():
     file = request.files['file']
     file.save(os.path.join(UPLOAD_FOLDER, file.filename))
-    file_data = read(os.path.join(UPLOAD_FOLDER, file.filename))
-    return file_data
+    # file_data = read(os.path.join(UPLOAD_FOLDER, file.filename))
+    return set_res(SUCCESS_STATUS, "")
 
 
 def set_res(status, data):
@@ -103,7 +104,7 @@ def delMethod():
 @app.route('/downloadMethodExcel', methods=['POST'])
 def downloadMethodExcel():
     data = request.get_json()
-    
+    jc = JsonCon()
     return set_res(SUCCESS_STATUS, jc.download_input_step_excel(data["methodId"]))
 
 
@@ -114,13 +115,33 @@ def openAndLogin():
     if loginFlag:
         return set_res(SUCCESS_STATUS, "登录成功")
     else:
-        return set_res(FAIL_STATUS, "已登录，切勿重复登陆")
+        return set_res(FAIL_STATUS, "登录失败，请检查是否开启VPN，是否重复登录，是否登录异常")
 
 
 @app.route('/closeAndLogout', methods=['POST'])
 def closeAndLogout():
     data = request.get_json()
     mc.run_logout(data["pk"])
+    return set_res(SUCCESS_STATUS, "已退出登录")
+
+
+@app.route('/controlWindow', methods=['POST'])
+def controlWindow():
+    data = request.get_json()
+    mc.controlWindow(data["pk"], data["action"])
+    return set_res(SUCCESS_STATUS, "")
+
+
+@app.route('/getWebList', methods=['POST'])
+def getWebList():
+    return set_res(FAIL_STATUS, mc.queryDriver())
+
+
+@app.route('/runMethod', methods=['POST'])
+def runMethod():
+    data = request.get_json()
+    # methodParam = {"isLoop": data["isLoop"],"loopStratNum":data["loopStratNum"],"loopEndNum":data["loopEndNum"]}
+    # mc.run_method(data["pk"],data["methodId"])
     return set_res(SUCCESS_STATUS, "已退出登录")
 
 

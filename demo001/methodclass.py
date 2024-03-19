@@ -1,4 +1,6 @@
 import datetime
+import logging
+
 import webclass
 from configController import JsonCon
 from selenium.webdriver.common.by import By
@@ -7,11 +9,22 @@ import time
 import urllib  # 网络访问
 
 
-def print_log(step_dict, methodName, step_num):
+def print_log(step_dict, methodName, logStatus, currentParam="", status="", exception=""):
     now = datetime.datetime.now()
     date_str = now.strftime("%Y-%m-%d %H:%M:%S")
-    print(date_str + " 当前正在运行方法：" + methodName + " 步骤：" + str(step_num) + " 步骤名称：" + step_dict[
-        "stepName"] + " 当前步骤等待时长：" + str(step_dict["waitSecond"]) + "秒")
+    logStr = ""
+    if logStatus == "ERROR":
+        logType = "[ERROR]"
+        logStr = date_str + logType + ":" + " 方法名称： " + methodName + " 步骤名称：" + step_dict[
+            "stepName"] + " 执行失败=====>失败原因：" + exception
+    elif logStatus == "STATUS":
+        logType = "[STATUS]"
+        logStr = date_str + logType + ":" + " 方法名称： " + methodName + " 步骤名称：" + step_dict[
+            "stepName"] + "----------" + status
+    elif logStatus == "INFO":
+        logType = "[INFO]"
+        logStr = date_str + logType + ":" + " 方法名称： " + methodName + " 步骤名称：" + step_dict[
+            "stepName"] + " 当前步骤等待时长：" + str(step_dict["waitSecond"]) + "秒 当前步骤输入参数：[" + currentParam + "] "
 
 
 class MethodCon:
@@ -19,8 +32,15 @@ class MethodCon:
     def __init__(self):
         self.jsonCon = JsonCon()
         self.running_driver_dict = {}
-        self.login_list = []
         self.webdriver_dict = {}
+        # now = datetime.datetime.now()
+        # date_str = now.strftime("%Y-%m-%d %H:%M:%S")
+        # logging.basicConfig(filename='example.log', level=logging.DEBUG)
+        # # 注意：上面level设置的是显示的最低严重级别，小于level设置的最低严重级别将不会打印出来
+        # logging.debug('This message should go to the log file')
+        # logging.info('So should this')
+        # logging.warning('And this, too')
+        # logging.error('And non-ASCII stuff, too, like Øresund and Malmö')
 
     def init_driver(self, pk):
         # 浏览器实例以账号PK为主键的dict 同时生成每个pk中运行的方法（单线程运行，不允许重复运行）
@@ -37,14 +57,18 @@ class MethodCon:
             methodId = "loginYGEK"
         now = datetime.datetime.now()
         date_str = now.strftime("%Y-%m-%d %H:%M:%S")
-        self.login_list.append(pk)
-        self.running_driver_dict[pk] = {"methodList": [], "isPause": False, "loginTime": date_str}
         self.webdriver_dict[pk] = webclass.WebEntity(url).global_webdriver
+        self.webdriver_dict[pk].minimize_window()
+        if userData["type"] == '2':
+            time.sleep(10)
         # self.webdriver_dict[pk].minimize_window()
         if self.run_login(pk, methodId, userData["username"], userData["password"]):
+            self.webdriver_dict[pk].maximize_window()
             self.jsonCon.change_login_status(pk)
-            self.webdriver_dict[pk].minimize_window()
+            self.running_driver_dict[pk] = {"methodList": [], "isPause": False, "loginTime": date_str}
             return True
+        else:
+            return False
 
         # init方法打开一个浏览器实例写入url网址，然后开始执行方法 
         # {"methodId": "", "methodName": method_dict["methodName"], "isPause": True, 
@@ -93,6 +117,11 @@ class MethodCon:
             resList.append(res_dict)
         return resList
 
+    def controlWindow(self, pk, action):
+        if action == "maximize":
+            self.webdriver_dict[pk].minimize_window()
+            self.webdriver_dict[pk].maximize_window()
+
     def queryMethodList(self, pk):
         return self.running_driver_dict[pk]["methodList"]
 
@@ -105,10 +134,13 @@ class MethodCon:
     def refresh(self, pk):
         self.webdriver_dict[pk].refresh()
 
+    def submit(self, pk, xpath, num, waitSecond):
+        self.webdriver_dict[pk].find_elements(By.XPATH, xpath)[num].submit()
+        time.sleep(waitSecond)
+
     def switch_to_newWindow(self, pk):
         # 获取所有窗口的句柄（handle）列表
         window_handles = self.webdriver_dict[pk].window_handles
-
         # 切换到最后一个窗口（新窗口）
         new_window = window_handles[-1]
         self.webdriver_dict[pk].switch_to.window(new_window)
@@ -133,7 +165,8 @@ class MethodCon:
         time.sleep(waitSecond)
 
     def find_and_click_by_text(self, pk, xpath, locateText, waitSecond):
-        input_text = self.webdriver_dict[pk].find_element(By.XPATH, xpath + "[text()='" + locateText + "']")
+        # self.global_webdriver.find_element(By.XPATH, "//*[contains(text(),'中文')]")
+        input_text = self.webdriver_dict[pk].find_element(By.XPATH, xpath + "[contains(text(),'" + locateText + "']")
         input_text.click()
         time.sleep(waitSecond)
 
@@ -142,10 +175,10 @@ class MethodCon:
             self.find_and_input(pk, param, step_dict["xpath"], step_dict["xpathIndex"],
                                 step_dict["waitSecond"])
         if step_dict["action"] == "click":
-            if len(param) > 0:  # // a[text() = "新闻"]
+            if step_dict["needLocate"]:  # // a[text() = "新闻"]
                 self.find_and_click_by_text(pk, step_dict["xpath"], param,
                                             step_dict["waitSecond"])
-            elif len(param) == 0:
+            else:
                 self.find_and_click(pk, step_dict["xpath"], step_dict["xpathIndex"],
                                     step_dict["waitSecond"])
         if step_dict["action"] == "enterFrame":
@@ -158,10 +191,14 @@ class MethodCon:
             self.switch_to_newWindow(pk)
         if step_dict["action"] == "switchToPreWindow":
             self.switch_to_preWindow(pk)
+        if step_dict["action"] == "submit":
+            self.submit(pk, step_dict["xpath"], step_dict["xpathIndex"],
+                        step_dict["waitSecond"])
 
     def run_logout(self, pk):
         self.webdriver_dict[pk].quit()
         del self.webdriver_dict[pk]
+        del self.running_driver_dict[pk]
         self.jsonCon.change_login_status(pk)
 
     def run_login(self, pk, methodId, username, password):
@@ -172,22 +209,21 @@ class MethodCon:
         for i in range(1, stepCount + 1):  # 从1开始的range要加一
             step_dict = step_data_dict["step" + str(i)]
             print_log(step_dict, method_dict["methodName"], i)
-            try:
-                if step_dict["action"] == "input":
-                    if "username" in step_dict:
-                        self.find_and_input(pk, username, step_dict["xpath"], step_dict["xpathIndex"],
-                                            step_dict["waitSecond"])
-                    if "password" in step_dict:
-                        self.find_and_input(pk, password, step_dict["xpath"], step_dict["xpathIndex"],
-                                            step_dict["waitSecond"])
-                if step_dict["action"] == "click":
-                    self.find_and_click(pk, step_dict["xpath"], step_dict["xpathIndex"],
+            if step_dict["action"] == "input":
+                if "username" in step_dict:
+                    self.find_and_input(pk, username, step_dict["xpath"], step_dict["xpathIndex"],
                                         step_dict["waitSecond"])
-                if step_dict["action"] == "pass_verify":
-                    pass_verify(self.webdriver_dict[pk])
-                    time.sleep(step_dict["waitSecond"])
-            except BaseException as e:
-                return step_dict["stepName"] + "运行异常"
+                if "password" in step_dict:
+                    self.find_and_input(pk, password, step_dict["xpath"], step_dict["xpathIndex"],
+                                        step_dict["waitSecond"])
+            if step_dict["action"] == "click":
+                self.find_and_click(pk, step_dict["xpath"], step_dict["xpathIndex"],
+                                    step_dict["waitSecond"])
+            if step_dict["action"] == "pass_verify":
+                pass_verify(self.webdriver_dict[pk])
+                time.sleep(step_dict["waitSecond"])
+            if step_dict["action"] == "refresh":
+                self.refresh(pk)
         return True
 
     def run_method(self, pk, methodId, param):

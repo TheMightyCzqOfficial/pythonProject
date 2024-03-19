@@ -34,7 +34,7 @@
                 "action": "click",
                 "inputText": "",
                 "stepName": "\u70b9\u51fb\u767b\u5f55\u6309\u94ae",
-                "waitSecond": 3,
+                "waitSecond": 0,
                 "xpath": "//button[@class='el-button el-button--primary']",
                 "xpathIndex": 0
             }
@@ -101,6 +101,44 @@
                 "waitSecond": 1,
                 "xpath": "123432423",
                 "xpathIndex": 1
+            }
+        }
+    },
+    "loginYGEK": {
+        "stepData": {
+            "step1": {
+                "action": "input",
+                "username": "",
+                "locateText": "",
+                "stepName": "\u8f93\u5165\u7528\u6237\u540d",
+                "waitSecond": 0,
+                "xpath": "//input[@id='userName']",
+                "xpathIndex": 0
+            },
+            "step2": {
+                "action": "input",
+                "password": "",
+                "locateText": "",
+                "stepName": "\u8f93\u5165\u5bc6\u7801",
+                "waitSecond": 0,
+                "xpath": "//input[@id='password']",
+                "xpathIndex": 0
+            },
+            "step3": {
+                "action": "click",
+                "locateText": "",
+                "stepName": "\u70b9\u51fb\u767b\u5f55\u6309\u94ae",
+                "waitSecond": 10,
+                "xpath": "//div[@id='loginBtn']",
+                "xpathIndex": 0
+            },
+            "step4": {
+                "action": "click",
+                "locateText": "",
+                "stepName": "\u70b9\u51fb\u786e\u5b9a\u767b\u5f55",
+                "waitSecond": 10,
+                "xpath": "//a[@id='loginPortal']",
+                "xpathIndex": 0
             }
         }
     }

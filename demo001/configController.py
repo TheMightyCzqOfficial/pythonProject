@@ -89,11 +89,17 @@ class JsonCon:
             date_str = now.strftime("%Y%m%d%H%M%S")
             userdata["U" + date_str] = data
         else:
+            isLogin = userdata[pk]["isLogin"]
+            data["isLogin"] = isLogin
             userdata[pk] = data
         self.save_by_filename("user", userdata)
 
     def get_method_list(self):
-        return read_config_file(self.config["method_list"])
+        methodList = read_config_file(self.config["method_list"])
+        for index, item in enumerate(methodList):
+            if item["methodId"] == "loginCWGX" or item["methodId"] == "loginYGEK":
+                del methodList[index]
+        return methodList
 
     def get_method(self, methodId):
         method_list = read_config_file(self.config["method_list"])
@@ -179,7 +185,7 @@ class JsonCon:
             for key in step_data.keys():
                 if step_data[key]['action'] == 'input':
                     input_step_list.append(step_data[key]['stepName'])
-                if step_data[key]['action'] == 'click':
+                if step_data[key]['needLocate']:
                     input_step_list.append(step_data[key]['stepName'] + "(下拉框选项)")
             return write4download(input_step_list)
         except AttributeError as e:
