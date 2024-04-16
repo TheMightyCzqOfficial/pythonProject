@@ -12,13 +12,6 @@ from readExcel import readXlsFile, readXlsFile4YG
 import json
 
 
-def isDebug():
-    if input("isDebugMode?y/n:") == 'y':
-        return ['C:/Users/13458/AppData/Roaming/360se6/Application/360se.exe', 'jzyw-pz07', '1234.asdf']
-    else:
-        return False
-
-
 def initLogging():
     if not os.path.exists("log"):
         os.mkdir("log")
@@ -26,6 +19,27 @@ def initLogging():
     logging.basicConfig(filename="./log/" + dateStr + "运行日志" + 'log.log',
                         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s  来自方法：<%(funcName)s>',
                         level=logging.INFO, encoding="utf-8")
+
+
+def path_check():
+    if not os.path.exists("helperConfig.json"):
+        open("helperConfig.json", "w").close()
+        update_config_file("helperConfig.json", {
+            "360Path": ""
+        })
+
+
+# 读取文件
+def read_config_file(file_path):
+    with open(file_path, 'r', encoding='utf-8') as f:
+        config_data = json.load(f)
+    return config_data
+
+
+# 写入文件
+def update_config_file(file_path, new_config):
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(new_config, f, indent=4)
 
 
 # def getWaitTime(option):
@@ -48,31 +62,19 @@ def initLogging():
 class DepartmentHelper:
     def __init__(self):
         initLogging()
-        flag = isDebug()
+        path_check()
         cwUrl = "https://10.19.18.12:9081/grm/dap/mapp/dccweb/bizcomponent/index.html#/login/ecp-login-zdj"
         ygUrl = "http://10.19.18.12:33021/metamodel/necp/mapp/metamodel/component.ef/bcp/login.html"
         self.errorDict = {}
         self.retryTimes = 0
         self.ygOption = 0
-        if not flag:
-            try:
-                self.SEpath = input("请输入360浏览器的路径(360se.exe)：\n")
-                print("请选择需要登录的平台：1=财务共享、2=远光二开：")
-                if input() == "1":
-                    self.url = cwUrl
-                    self.loginType = '1'
-                else:
-                    self.url = ygUrl
-                    self.loginType = '2'
-                self.webDriver = WebEntity(self.SEpath).global_webdriver
-                self.stepProcess = 0
-                self.currentStepProcess = 1
-                self.startUp()
-            except BaseException as e:
-                logging.error(e)
-                print("初始化失败！请确认浏览器路径，是否配置环境变量")
-                self.__init__()
-        else:
+        self.isAuto = False
+        try:
+            self.SEpath = read_config_file("helperConfig.json")["360Path"]
+            if self.SEpath == "":
+                input("未读取到360浏览器路径配置，请进入helperConfig.json维护！")
+                sys.exit()
+            print("开始之前请确保网络状态以及VPN(建议使用热点或网线，如果网络很卡请勿使用！！！！！！！！)")
             print("请选择需要登录的平台：1=财务共享、2=远光二开：")
             if input() == "1":
                 self.url = cwUrl
@@ -80,10 +82,13 @@ class DepartmentHelper:
             else:
                 self.url = ygUrl
                 self.loginType = '2'
-            self.webDriver = WebEntity(flag[0]).global_webdriver
+            self.webDriver = WebEntity(self.SEpath).global_webdriver
             self.stepProcess = 0
             self.currentStepProcess = 1
-            self.startUp(flag[1], flag[2])
+            self.startUp()
+        except BaseException as e:
+            logging.error(e)
+            print("初始化失败！请确认浏览器路径，是否配置环境变量")
 
     def enter_frame(self, iframe):  # 传入iframe Xpath
         self.webDriver.switch_to.frame(iframe)
@@ -155,7 +160,6 @@ class DepartmentHelper:
             if self.loginType == '2':
                 isLogin = self.loginYG(userName, passWord)
             else:
-                self.webDriver.minimize_window()
                 print("输入账号：" + userName)
                 self.find_and_input(userName, "//input", 0, 0)
                 print("输入密码：" + passWord)
@@ -189,23 +193,23 @@ class DepartmentHelper:
     # 远光二开登录
     def loginYG(self, userName, passWord):
         try:
-            self.webDriver.minimize_window()
-            time.sleep(10)
             # self.webDriver.minimize_window()
             print("输入账号：" + userName)
             self.find_and_input(userName, "//input[@id='userName']", 0, 0)
             print("输入密码：" + passWord)
             self.find_and_input(passWord, "//input[@id='password']", 0, 0)
-            print("点击登录按钮")
+            print("正在点击登录按钮")
             self.find_and_click("//div[@id='loginBtn']", 0, 10)
             print("正在验证登录是否成功")
-            self.webDriver.maximize_window()
             self.find_and_click_by_text('//*', '确定', 7)
             self.find_and_click_by_text('//*', '配置视图', 0)
             print("登录成功...")
+            self.webDriver.maximize_window()
+            self.webDriver.refresh()
+            time.sleep(3)
+            self.enterYGEKMenu()
+
             logging.info("远光二开平台用户：%s登录成功" % userName)
-            if not self.enterYGEKMenu():
-                print("进入菜单失败。。。返回。。。")
             return True
             # self.webDriver.set_window_size(width=960, height=900)
         except BaseException as e:
@@ -267,6 +271,7 @@ class DepartmentHelper:
     def enterYGEKMenu(self):
         isSuccess = False
         try:
+            self.ygOption = "1"#str(input("请输入需要运行的选项(1.流程下发 2.凭证模板设置)："))
             if self.ygOption == '1':
                 self.find_and_click_by_text('//*', '配置视图', 5)
                 print("进入菜单：配置视图-->流程管理")
@@ -279,9 +284,10 @@ class DepartmentHelper:
                 print("等待菜单加载...")
                 self.find_and_click_by_text('//span', '打印设置', 5)
                 action = ActionChains(self.webDriver)
-                action.move_to_element(self.webDriver.find_element(By.XPATH,"//span[text()='固定实体']")).double_click().perform()
+                action.move_to_element(
+                    self.webDriver.find_element(By.XPATH, "//span[text()='固定实体']")).double_click().perform()
                 self.find_and_click_by_text('//span', '凭证打印', 0.5)
-                self.find_and_click("//a[@id='entitySettingBtn']",0,10)
+                self.find_and_click("//a[@id='entitySettingBtn']", 0, 10)
                 print("进入菜单成功..")
             isSuccess = True
         except BaseException as e:
@@ -295,6 +301,7 @@ class DepartmentHelper:
         return isSuccess
 
     def runSetProcessByDepNameMain(self):
+
         processList = readXlsFile4YG(input("请输入流程配置模板文件路径(.xls)："))
         if not processList:
             return False
@@ -324,7 +331,7 @@ class DepartmentHelper:
             processType = processDict["type"]
             processName = processDict["processName"]
             self.errorDict[processName] = {"action": processType, "errorDepName": [], "error": ""}
-            print("当前配置流程：" + processName)
+            print("当前配置流程：" + processName+" 操作："+processType+" 单位："+ str(processDict["depName"]))
             logging.info("当前配置流程：" + processName)
             self.stepProcess = 10 + processDict["count"]
             queryInput = self.webDriver.find_element(By.XPATH, "//input[@id='queryText']")
@@ -768,29 +775,24 @@ class DepartmentHelper:
     # //td[text()='默认方案']//td[@class='sortDefault']
     # //td[text()='否']/preceding-sibling::td[1]
     # //a[@id='grid20_filterOkBtn']
-    def startUp(self, userName='', passWord=''):
+    def startUp(self):
         logging.info("打开网页：" + self.url)
         self.webDriver.get(self.url)
         runningFlag = False
-        if userName == '':
-            self.login(input("请输入账号:\n"), input("请输入密码：\n"))
-        else:
-            self.login(userName, passWord)
+        self.webDriver.minimize_window()
+        self.login(input("请输入账号:\n"), input("请输入密码：\n"))
         while not runningFlag:
             if self.loginType == '1':
                 runningFlag = self.runChangeDepartmentMain()
                 print("运行完毕,请检查日志最后错误部门报告")
             elif self.loginType == '2':
-                self.ygOption = str(input("请输入需要运行的选项(1.流程下发 2.凭证模板设置)："))
                 if self.ygOption == '1':
                     runningFlag = self.runSetProcessByDepNameMain()
                 elif self.ygOption == '2':
                     pass
         input("运行完毕。。。")
         logging.info("运行完毕，正常退出")
-        sys.exit(0)
 
 
 if __name__ == '__main__':
     d = DepartmentHelper()
-    d.startUp()

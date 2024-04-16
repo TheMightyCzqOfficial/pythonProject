@@ -61,8 +61,8 @@ def readXlsFile4YG(path):
         wb = xlrd.open_workbook(path)
         s_names = wb.sheet_names()
         wb_dict = {}
-        if len(s_names) != 1 or s_names[0] != 'Sheet1':
-            print("只允许有一个工作簿,且工作簿名称为Sheet1")
+        if len(s_names) != 1:
+            print("只允许有一个工作簿")
             return False
         sheet = wb.sheet_by_name(s_names[0])
         wb_dict[s_names[0]] = {}
